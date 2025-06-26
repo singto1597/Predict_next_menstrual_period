@@ -47,3 +47,35 @@ next_date = last_date + timedelta(days=predicted_interval)
 print(f"รอบถัดไปน่าจะมาประมาณวันที่: {next_date.strftime('%Y-%m-%d')} ({predicted_interval} วันจากรอบล่าสุด)")
 
 
+import plotly.graph_objects as go
+predicted_date = next_date
+
+# สร้างแกน X และ Y สำหรับกราฟ
+x_labels = [d.strftime("%Y-%m-%d") for d in dates[1:]]  # ตั้งแต่รอบที่ 2 เป็นต้นไป
+x_labels.append(predicted_date.strftime("%Y-%m-%d"))
+
+y_values = intervals + [predicted_interval]
+bar_colors = ['skyblue'] * len(intervals) + ['red']
+
+# สร้างกราฟ
+fig = go.Figure(data=[
+    go.Bar(
+        x=x_labels,
+        y=y_values,
+        marker_color=bar_colors,
+        text=[f"{y} วัน" for y in y_values],
+        textposition='outside'
+    )
+])
+
+fig.update_layout(
+    title="จำนวนวันห่างของรอบเดือนแต่ละรอบ (แท่งแดง = ค่าที่ AI ทำนาย)",
+    xaxis_title="วันที่เริ่มรอบเดือน",
+    yaxis_title="จำนวนวันห่างจากรอบก่อนหน้า",
+    xaxis=dict(tickangle=45),
+    bargap=0.2,
+    height=500,
+    margin=dict(l=40, r=40, t=80, b=100)
+)
+
+fig.show()
