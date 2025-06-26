@@ -1,32 +1,49 @@
 from datetime import datetime, timedelta
-from sklearn.ensemble import RandomForestRegressor
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 
-# อ่านข้อมูลจากไฟล์
-with open("period_data.txt", "r") as file:
-    raw_dates = [line.strip() for line in file.readlines() if line.strip()]
+# ข้อมูลวันเริ่มรอบเดือน
+raw_dates = [
+    "2024-09-18", "2024-10-18", "2024-11-17", "2024-12-15",
+    "2025-01-13", "2025-02-11", "2025-03-08", "2025-04-05",
+    "2025-05-07", "2025-06-08"
+]
 
-# แปลงเป็น datetime
+# แปลงเป็นช่วงห่าง (จำนวนวัน)
 dates = [datetime.strptime(d, "%Y-%m-%d") for d in raw_dates]
+intervals = np.array([(dates[i] - dates[i - 1]).days for i in range(1, len(dates))])
 
-# คำนวณความห่างแต่ละรอบ
-intervals = [(dates[i] - dates[i - 1]).days for i in range(1, len(dates))]
-
-# เตรียมข้อมูลฝึก AI (ใช้ 2 รอบก่อนหน้า เพื่อทำนายรอบถัดไป)
+# เตรียมข้อมูลสำหรับ LSTM
+sequence_length = 7
 X, y = [], []
-for i in range(2, len(intervals)):
-    X.append([intervals[i - 2], intervals[i - 1]])
-    y.append(intervals[i])
+for i in range(len(intervals) - sequence_length):
+    X.append(intervals[i:i + sequence_length])
+    y.append(intervals[i + sequence_length])
+X = np.array(X).reshape((-1, sequence_length, 1))
+y = np.array(y)
 
-# เทรนโมเดล
-model = RandomForestRegressor(random_state=42)
-model.fit(X, y)
+# สร้างโมเดล LSTM
+model = Sequential([
+    LSTM(50, activation='relu', input_shape=(sequence_length, 1)),
+    Dense(1)
+])
+model.compile(optimizer='adam', loss='mse')
 
-# ทำนายจาก 2 รอบล่าสุด
-predicted_interval = model.predict([intervals[-2:]])[0]
-predicted_interval = round(predicted_interval)
+# เทรน
+model.fit(X, y, epochs=300, verbose=0)
 
-# คำนวณวันที่น่าจะมาเมนส์รอบหน้า
-next_date = dates[-1] + timedelta(days=predicted_interval)
+
+
+# ทำนายรอบถัดไปจาก 3 รอบล่าสุด
+last_seq = intervals[-7:].reshape((1, sequence_length, 1))
+predicted = model.predict(last_seq, verbose=0)
+predicted_interval = round(predicted[0][0])
 
 # แสดงผล
-print(f"รอบถัดไปน่าจะมาในวันที่: {next_date.strftime('%Y-%m-%d')} (ประมาณ {predicted_interval} วันจากรอบล่าสุด)")
+last_date = dates[-1]
+next_date = last_date + timedelta(days=predicted_interval)
+
+print(f"รอบถัดไปน่าจะมาประมาณวันที่: {next_date.strftime('%Y-%m-%d')} ({predicted_interval} วันจากรอบล่าสุด)")
+
+
