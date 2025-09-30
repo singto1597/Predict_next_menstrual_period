@@ -24,7 +24,7 @@ choise = input("ต้องการเทรนหรือใช้โมเ�
 
 if choise == "use":
     from tensorflow.keras.models import load_model
-    model = load_model("period_predictor_model_1.h5")
+    model = load_model("period_predictor_model_2.h5")
 else:
     print("กำลังเทรนโมเดล...")
     # สร้างโมเดล LSTM
@@ -35,9 +35,9 @@ else:
     model.compile(optimizer='adam', loss='mse')
 
     # เทรน
-    model.fit(X, y, epochs=1000, verbose=1)
+    model.fit(X, y, epochs=4000, verbose=1)
     print("โมเดลเทรนเสร็จสิ้น")
-    model.save("period_predictor_model_1.h5")
+    model.save("period_predictor_model_2.h5")
 
 last_seq = intervals[-sequence_length:].reshape((1, sequence_length, 1))
 predicted = model.predict(last_seq, verbose=0)
